@@ -76,3 +76,38 @@ ggplot(df_msd, aes(x = desviacion, y = media, label = nombre)) +
   labs(x = "Desviación Estándar", y = "Media", title = "Gráfico de Media vs Desviación Estándar") +
   coord_cartesian(xlim = c(0, max(df_msd$desviacion)), ylim = c(0, max(df_msd$media)))
 
+E=df_msd$media
+Et=t(E)
+#calcular la matriz de covarianza de nuevo con a1 a4 y a5
+#matriz de covarianza, creo un df con las columnas de los retornos
+sigma <- data.frame(
+  a1 = df_a1$RET,
+  a4 = df_a4$RET,
+  a5 = df_a5$RET
+)
+#y luego la matriz:
+sigma <- cov(sigma)
+sigma_inv <- solve(sigma)
+unos=c(1,1,1)
+A=as.numeric(Et%*%sigma_inv%*%E)
+B=as.numeric(Et%*%sigma_inv%*%unos)
+C=as.numeric(t(unos)%*%sigma_inv%*%unos)
+
+frontera<- data.frame(
+  mu=seq(from = 0, to = 0.2, by = 0.005)
+  )
+frontera<-frontera %>%
+  mutate(VAR_RP = (C*mu^2 -2*B*mu +A)/(A*C-B^2))
+frontera<-frontera %>%
+  mutate(sd_RP =sqrt(VAR_RP))
+
+#grafico
+ggplot(frontera, aes(x = sd_RP, y = mu)) +
+  geom_point(size=1) +  # Graficar los puntos
+  geom_point(data = df_msd, aes(x = desviacion, y = media), color = "red") +
+  geom_text(data = df_msd, aes(x = desviacion, y = media, label = nombre), color = "red", vjust = 0, hjust = 0) + 
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.line = element_line(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  labs(x = "Desviación Estándar (sd_RP)", y = "Media (mu)", title = "Frontera minima varianza")
