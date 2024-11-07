@@ -111,3 +111,33 @@ ggplot(frontera, aes(x = sd_RP, y = mu)) +
         axis.line = element_line(color = "black"),
         axis.ticks = element_line(color = "black")) +
   labs(x = "Desviación Estándar (sd_RP)", y = "Media (mu)", title = "Frontera minima varianza")
+# la tasa libre de riesgo sera la treasury bill 3 meses anualizado del tesoro de estados unidos
+RF=0.044
+#luego el sharpe ratio para cada portafolio sera
+frontera<-frontera %>%
+  mutate(sharpe =(mu-RF)/sd_RP)
+#portafolio tangente va a ser el maximo sharpe ratio
+sharpe_max=max(frontera$sharpe)
+R_pt=frontera[frontera$sharpe == sharpe_max, ]
+
+#vector ponderadores
+
+wp<-sigma_inv%*%((E%*%(C%*%R_pt$mu -B)+unos%*%(A-B%*%R_pt$mu))/(A*C-B^2))
+
+# los activos que dejamos fuera son a2 a3 y a6
+#primero calcular los retornos historicos del portafolio para porder hacer la matriz de correlacion
+r_hist_pt<-data.frame(
+  año=seq(from = 1988, to = 2016, by = 1))
+r_hist_pt<-r_hist_pt %>%
+  mutate(E_pt=df_a1$RET*as.numeric(wp[1])+df_a4$RET*as.numeric(wp[2])+df_a5$RET*as.numeric(wp[3]))
+         
+#a2
+corr_a2_pt=cor(df_a2$RET,r_hist_pt$E_pt)
+#a3
+corr_a3_pt=cor(df_a3$RET,r_hist_pt$E_pt)
+#a6
+corr_a6_pt=cor(df_a6$RET,r_hist_pt$E_pt)
+#sharpe marginal (Ri-RF)/corr*sdi
+s_mg_a2=(mean_a2-RF)/(corr_a2_pt*sd_a2)
+s_mg_a3=(mean_a3-RF)/(corr_a3_pt*sd_a3)
+s_mg_a6=(mean_a6-RF)/(corr_a6_pt*sd_a6)
