@@ -136,7 +136,7 @@ ggplot(frontera, aes(x = sd_RP, y = mu)) +
 #------------------------------------------------------------------------------#
 #------------------------------------------------------------------------------#
 # la tasa libre de riesgo sera la treasury bill 3 meses anualizado del tesoro de estados unidos
-RF=0.044
+RF=0.01
 #luego el sharpe ratio para cada portafolio sera
 frontera<-frontera %>%
   mutate(sharpe =(mu-RF)/sd_RP)
@@ -228,13 +228,28 @@ frontera_tot<-frontera_tot %>%
   mutate(VAR_RP = (C*mu^2 -2*B*mu +A)/(A*C-B^2))
 frontera_tot<-frontera_tot %>%
   mutate(sd_RP =sqrt(VAR_RP))
+frontera_tot<-frontera_tot %>%
+  mutate(sharpe =(mu-RF)/sd_RP)
+#portafolio tangente va a ser el maximo sharpe ratio
+
+
+sharpe_tot_max=max(frontera_tot$sharpe)
+R_pt_tot=frontera_tot[frontera_tot$sharpe == sharpe_tot_max, ]
+wp_tot<-sigma_tot_inv%*%((E%*%(C%*%R_pt_tot$mu -B)+unos%*%(A-B%*%R_pt_tot$mu))/(A*C-B^2))
+
+
 #graficar
+
 ggplot(frontera_tot, aes(x = sd_RP, y = mu)) +
-  geom_point(size=1) +  # Graficar los puntos
-  geom_point(data = df_tot, aes(x = desviacion, y = media), color = "red") +
-  geom_text(data = df_tot, aes(x = desviacion, y = media, label = nombre), color = "red", vjust = 0, hjust = 0) + 
+  geom_point(size = 1) +  # Graficar los puntos de la frontera
+  geom_point(data = df_tot, aes(x = desviacion, y = media), color = "purple") +
+  geom_text(data = df_tot, aes(x = desviacion, y = media, label = nombre), color = "purple", vjust = 0, hjust = 0) +
+  geom_text(data = R_pt_tot, aes(x = sd_RP, y = mu, label = "PT"), color = "red", vjust = 1, hjust = 1) +
+  # Agregar la línea desde el activo libre de riesgo (RF) hasta el portafolio tangente (PT)
+  geom_segment(aes(x = 0, y = RF, xend = R_pt_tot$sd_RP, yend = R_pt_tot$mu), 
+               color = "blue", linetype = "dashed") +
   theme_minimal() +
   theme(panel.grid = element_blank(),
         axis.line = element_line(color = "black"),
         axis.ticks = element_line(color = "black")) +
-  labs(x = "Desviación Estándar (sd_RP)", y = "Media (mu)", title = "Frontera minima varianza")
+  labs(x = "Desviación Estándar (sd_RP)", y = "Media (mu)", title = "Frontera mínima varianza con Línea de Mercado de Capitales (CML)")
